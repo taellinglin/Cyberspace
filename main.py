@@ -285,7 +285,7 @@ class AdditiveSynthesizerApp(ShowBase):
     def update_camera_path(self, task):
         """Move the camera along a path targeting the center of mass."""
         t = self.t
-        self.t += .01
+        self.t += .001
         x = np.sin(t) * 20 + np.sin(t * 2) * 5
         y = np.cos(t) * 30 + np.sin(t * 0.5) * 10
         z = np.sin(t * 3) * 5 + np.cos(t * 0.7) * 15
