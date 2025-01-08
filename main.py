@@ -216,7 +216,7 @@ class AdditiveSynthesizerApp(ShowBase):
             
             # Debugging: Print out the signal to check if it's modulating correctly
             print(f"Object {obj.getName()} Arpeggio Speed: {arpeggio_speed}, Signal Volume: {sound_volume}")
-
+            
             # Compute the direction of the sound relative to the listener (camera)
             direction = obj_position - camera_position
             direction.normalize()
@@ -229,18 +229,32 @@ class AdditiveSynthesizerApp(ShowBase):
             pan_left = max(0, min(1, (1 - pan) / 2))
             pan_right = max(0, min(1, (1 + pan) / 2))
             
+            # Get the object's color (assuming it has a material with color)
+            if obj.hasMaterials():
+                mat = obj.getMaterials()[0]  # Get the first material
+                color = mat.getDiffuse()  # Get the diffuse color (RGBA)
+                # Calculate the average color intensity (using RGB)
+                color_intensity = (color[0] + color[1] + color[2]) / 3  # Average of RGB values
+                
+                # Use color intensity to scale the sound volume
+                scaled_sound_volume = sound_volume * color_intensity
+            else:
+                scaled_sound_volume = sound_volume  # Default to normal volume if no color is set
+            
             # Play the sound with the computed volume and pan for each object
             sound_name = "o"  # Adjust this to the appropriate sound
             sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx))  
             
             if sound:
-                # Apply 3D volume based on synthesized signal and distance
-                sound.setVolume(sound_volume * distance_attenuation)
+                # Apply 3D volume based on synthesized signal, distance, and color-based scaling
+                sound.setVolume(scaled_sound_volume * distance_attenuation)
                 
                 # Apply the calculated pan (left-right positioning)
                 sound.setPan(pan_left, pan_right)
         
         return Task.cont
+
+
 
 
 
@@ -250,9 +264,9 @@ class AdditiveSynthesizerApp(ShowBase):
             self.rotation_speeds = {}
             for obj in self.objects:
                 self.rotation_speeds[obj] = {
-                    'x': random.uniform(.005, 0.2),
-                    'y': random.uniform(.005, 0.2),
-                    'z': random.uniform(.005, 0.2),
+                    'x': random.uniform(5, 20),
+                    'y': random.uniform(5, 20),
+                    'z': random.uniform(5, 20),
                 }
 
         for obj in self.objects:
@@ -279,7 +293,8 @@ class AdditiveSynthesizerApp(ShowBase):
         return Task.cont
 
     def update_emissive_colors(self, task):
-        """Rapidly cycle colors of each object in the scene."""
+        """Rapidly cycle colors of each object in the scene, modulate binaural beat frequency with color cycling speed."""
+        
         roygbiv_colors = [
             Vec4(1, 0, 0, 1),  # Red
             Vec4(1, 0.5, 0, 1),  # Orange
@@ -290,15 +305,52 @@ class AdditiveSynthesizerApp(ShowBase):
             Vec4(0.56, 0, 1, 1),  # Violet
         ]
 
+        # Define base binaural beat frequencies (in Hz)
+        base_freq_left = 300  # Left ear base frequency (Hz)
+        base_freq_right = 305  # Right ear base frequency (Hz)
+
         for obj in self.objects:
+            # Update color cursor based on time (cycling through the colors)
             color_cursor = self.color_cursors[obj] + task.time * 0.1
             self.color_cursors[obj] = color_cursor % 1
+            
+            # Calculate color index and apply color to object
             color_index = int(self.color_cursors[obj] * len(roygbiv_colors))
             color = roygbiv_colors[color_index % len(roygbiv_colors)]
             self.material.setEmission(color)
             obj.setMaterial(self.material)
             obj.setColor(color)
+            
+            # Calculate the speed of the color cycling for binaural beat modulation
+            color_cycle_speed = self.color_cursors[obj] * 2 * math.pi  # Convert [0, 1] range to oscillating speed
+            
+            # Oscillate the difference frequency of the binaural beat based on the color cycle speed
+            diff_frequency = 5 + (color_cycle_speed * 10)  # Adjust the difference frequency range (5 Hz to ~60 Hz)
 
+            # Create binaural beats by modulating the difference between the left and right frequencies
+            freq_left = base_freq_left
+            freq_right = base_freq_right + diff_frequency
+            
+            # Generate the binaural beat signal (in this case, a sine wave with the difference frequency)
+            time = task.time
+            left_signal = np.sin(2 * np.pi * freq_left * time)  # Left ear signal
+            right_signal = np.sin(2 * np.pi * freq_right * time)  # Right ear signal
+            
+            # Binaural beat is the perceived difference between the two signals
+            binaural_beat = left_signal - right_signal
+            
+            # Now you can use this binaural beat signal to modulate an audio source, for example:
+            sound_name = "o"
+            pitch_flux = (sin(task.time/16) + 1)/2
+            print(f"Color Cycle Speed: {color_cycle_speed}")
+            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=0.5/color_cycle_speed + pitch_flux, volume=0.25)
+            sound2 = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=0.25*color_cycle_speed + pitch_flux, volume=0.25)
+
+            
+            if sound:
+                # Apply the binaural beat signal's volume (this can be mapped to the signal's strength)
+                sound.setVolume(np.clip(abs(binaural_beat), 0, 1))  # Normalize the binaural beat volume (0 to 1)
+            
         return Task.cont
 
     def oscillate_scale_and_rotation(self, task):
@@ -309,7 +361,7 @@ class AdditiveSynthesizerApp(ShowBase):
 
             rotation_speed = random.uniform(10, 50)
             obj.setH(obj.getH() + rotation_speed * task.time)
-
+            obj.setP(obj.getP() + scale_factor * task.time)
         return Task.cont
 
     def twinkle_effect(self, task):
