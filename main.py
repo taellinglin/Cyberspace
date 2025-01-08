@@ -63,7 +63,7 @@ class AdditiveSynthesizerApp(ShowBase):
         self.t = 0
         self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
-        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam":
+        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam" or random_scene == "10.bam":
             self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
         self.taskMgr.add(self.twinkle_effect, "TwinkleEffect")
         
@@ -285,7 +285,7 @@ class AdditiveSynthesizerApp(ShowBase):
     def update_camera_path(self, task):
         """Move the camera along a path targeting the center of mass."""
         t = self.t
-        self.t += 0.001
+        self.t += .01
         x = np.sin(t) * 20 + np.sin(t * 2) * 5
         y = np.cos(t) * 30 + np.sin(t * 0.5) * 10
         z = np.sin(t * 3) * 5 + np.cos(t * 0.7) * 15

@@ -14,8 +14,8 @@ class audio3d:
         }
 
         # Set global audio settings
-        self.audio3d.setDistanceFactor(1)
-        self.audio3d.setDopplerFactor(1)
+        self.audio3d.setDistanceFactor(0.01)
+        self.audio3d.setDopplerFactor(30)
 
         # List of looping sounds
         self.playing_loops = []
@@ -50,8 +50,8 @@ class audio3d:
             self.audio3d.attachSoundToObject(sfx3d, obj)
             self.audio3d.setSoundMinDistance(sfx3d, 100)
             self.audio3d.setSoundMaxDistance(sfx3d, 200)
-            self.audio3d.setDropOffFactor(1)
-            self.audio3d.setDopplerFactor(1)
+            self.audio3d.setDropOffFactor(0.01)
+            self.audio3d.setDopplerFactor(30)
             # Play sound immediately (non-blocking)
             sfx3d.play()
 
