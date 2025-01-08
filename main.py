@@ -63,7 +63,8 @@ class AdditiveSynthesizerApp(ShowBase):
         self.t = 0
         self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
-        #self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
+        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam":
+            self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
         self.taskMgr.add(self.twinkle_effect, "TwinkleEffect")
         
         self.color_cursors = {}
@@ -296,13 +297,13 @@ class AdditiveSynthesizerApp(ShowBase):
         """Rapidly cycle colors of each object in the scene, modulate binaural beat frequency with color cycling speed."""
         
         roygbiv_colors = [
-            Vec4(1, 0, 0, 1),  # Red
-            Vec4(1, 0.5, 0, 1),  # Orange
-            Vec4(1, 1, 0, 1),  # Yellow
-            Vec4(0, 1, 0, 1),  # Green
-            Vec4(0, 0, 1, 1),  # Blue
-            Vec4(0.29, 0, 0.51, 1),  # Indigo
-            Vec4(0.56, 0, 1, 1),  # Violet
+            Vec4(1, 0, 0, 0.25),  # Red
+            Vec4(1, 0.5, 0, 0.25),  # Orange
+            Vec4(1, 1, 0, 0.25),  # Yellow
+            Vec4(0, 1, 0, 0.25),  # Green
+            Vec4(0, 0, 1, 0.25),  # Blue
+            Vec4(0.29, 0, 0.51, 0.25),  # Indigo
+            Vec4(0.56, 0, 1, 0.25),  # Violet
         ]
 
         # Define base binaural beat frequencies (in Hz)
@@ -320,6 +321,8 @@ class AdditiveSynthesizerApp(ShowBase):
             self.material.setEmission(color)
             obj.setMaterial(self.material)
             obj.setColor(color)
+            obj.setTwoSided(True)
+            obj.setTransparency(True)
             
             # Calculate the speed of the color cycling for binaural beat modulation
             color_cycle_speed = self.color_cursors[obj] * 2 * math.pi  # Convert [0, 1] range to oscillating speed
