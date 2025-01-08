@@ -83,7 +83,7 @@ class AdditiveSynthesizerApp(ShowBase):
             self.audio3darray[obj] = audio3d()  # Assign a unique audio3d instance to each object
         
         # Additive synthesis sounds (combining multiple sine waves for each object)
-        #self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
+        self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
         self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
         
         #self.taskMgr.add(self.rotate_objects, "Rotate")
@@ -155,7 +155,7 @@ class AdditiveSynthesizerApp(ShowBase):
             signal = np.clip(signal, -1, 1)
             distance = self.get_distance_from_camera(obj)
             # Apply the volume and pan based on distance and position
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx), volume=(idx/(distance))*0.01) # Replace "o" with your actual sound source
+            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx), volume=((idx/(distance))*0.001)) # Replace "o" with your actual sound source
             
             if sound:
                 # Apply calculated volume and panning
@@ -244,8 +244,8 @@ class AdditiveSynthesizerApp(ShowBase):
             
             # Play the sound with the computed volume and pan for each object
             sound_name = "o"  # Adjust this to the appropriate sound
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor)  
-            self.audio3darray[obj].setVolume(distance_attenuation)
+            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=color_intensity*self.ling_factor)  
+            self.audio3darray[obj].setVolume(scaled_sound_volume)
             
             if sound:
                 # Apply 3D volume based on synthesized signal, distance, and color-based scaling
@@ -311,7 +311,7 @@ class AdditiveSynthesizerApp(ShowBase):
         base_freq_left = 300  # Left ear base frequency (Hz)
         base_freq_right = 305  # Right ear base frequency (Hz)
 
-        for obj in self.objects:
+        for idx, obj in enumerate(self.objects):
             # Update color cursor based on time (cycling through the colors)
             color_cursor = self.color_cursors[obj] + task.time * 0.1
             self.color_cursors[obj] = color_cursor % 1
@@ -348,9 +348,9 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=6/color_cycle_speed + pitch_flux, volume=0.25)
-            self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)
-            
+            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=32*color_cycle_speed + pitch_flux, volume=1/(idx+1))
+            #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
+            self.audio3darray[obj].setVolume(1/color_cycle_speed)      
             
 
             
@@ -378,6 +378,7 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
+            self.audio3darray[obj].setVolume(opacity)      
             
 
         return Task.cont
