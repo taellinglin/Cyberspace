@@ -14,8 +14,8 @@ class audio3d:
         }
 
         # Set global audio settings
-        self.audio3d.setDistanceFactor(10)
-        self.audio3d.setDopplerFactor(30)
+        self.audio3d.setDistanceFactor(1)
+        self.audio3d.setDopplerFactor(1)
 
         # List of looping sounds
         self.playing_loops = []
@@ -50,8 +50,8 @@ class audio3d:
             self.audio3d.attachSoundToObject(sfx3d, obj)
             self.audio3d.setSoundMinDistance(sfx3d, 100)
             self.audio3d.setSoundMaxDistance(sfx3d, 200)
-            self.audio3d.setDropOffFactor(30)
-            self.audio3d.setDopplerFactor(30)
+            self.audio3d.setDropOffFactor(1)
+            self.audio3d.setDopplerFactor(1)
             # Play sound immediately (non-blocking)
             sfx3d.play()
 
@@ -74,3 +74,25 @@ class audio3d:
 
         # Clear the list of looping sounds after stopping
         self.playing_loops.clear()
+        
+    def setLoopSpeed(self, playspeed=1.0):
+        """ Adjust the playback speed of all currently playing looping sounds. """
+        if not self.playing_loops:
+            print("No looping sounds are currently playing.")
+            return
+
+        for sound in self.playing_loops:
+            sound.setPlayRate(playspeed)
+            print(f"Adjusted looping sound speed to: {playspeed}")
+    def setVolume(self, volume=1.0):
+        """ Adjust the volume of all currently playing looping sounds. """
+        if not self.playing_loops:
+            print("No looping sounds are currently playing.")
+            return
+
+        # Clamp the volume between 0.0 and 1.0
+        volume = max(0.0, min(volume, 1.0))
+
+        for sound in self.playing_loops:
+            sound.setVolume(volume)
+            print(f"Adjusted looping sound volume to: {volume}")

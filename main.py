@@ -7,7 +7,7 @@ import random
 from direct.task import Task
 import numpy as np
 from panda3d.core import LQuaternionf, LVector3f
-from math import sin, pi
+from math import sin, pi, cos
 from audio3d import audio3d
 import math
 from motionBlur import MotionBlur
@@ -20,7 +20,7 @@ class AdditiveSynthesizerApp(ShowBase):
         super().__init__(self)
         self.accept("escape", self.quit)
         self.setup_fullscreen()
-        self.ling_factor = 0.007*random.choice([1,2,4,8,16,32])
+        self.ling_factor = 1*random.choice([8])
         # Set background color to black
         self.setBackgroundColor(0, 0, 0, 0.0)
                 # Get the current working directory
@@ -155,7 +155,7 @@ class AdditiveSynthesizerApp(ShowBase):
             signal = np.clip(signal, -1, 1)
             distance = self.get_distance_from_camera(obj)
             # Apply the volume and pan based on distance and position
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx), volume=1/distance)  # Replace "o" with your actual sound source
+            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx), volume=(idx/(distance))*0.01) # Replace "o" with your actual sound source
             
             if sound:
                 # Apply calculated volume and panning
@@ -244,7 +244,8 @@ class AdditiveSynthesizerApp(ShowBase):
             
             # Play the sound with the computed volume and pan for each object
             sound_name = "o"  # Adjust this to the appropriate sound
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx))  
+            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor)  
+            self.audio3darray[obj].setVolume(distance_attenuation)
             
             if sound:
                 # Apply 3D volume based on synthesized signal, distance, and color-based scaling
@@ -345,9 +346,12 @@ class AdditiveSynthesizerApp(ShowBase):
             # Now you can use this binaural beat signal to modulate an audio source, for example:
             sound_name = "o"
             pitch_flux = (sin(task.time/16) + 1)/2
+            pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=0.5/color_cycle_speed + pitch_flux, volume=0.25)
-            sound2 = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=0.25*color_cycle_speed + pitch_flux, volume=0.25)
+            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=6/color_cycle_speed + pitch_flux, volume=0.25)
+            self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)
+            
+            
 
             
             if sound:
@@ -362,9 +366,9 @@ class AdditiveSynthesizerApp(ShowBase):
             scale_factor = 0.5 + 0.5 * np.sin(task.time * self.scale_speeds[obj] + random.random())
             obj.setScale(scale_factor)
 
-            rotation_speed = random.uniform(10, 50)
+            rotation_speed = random.uniform(.1, .05)
             obj.setH(obj.getH() + rotation_speed * task.time)
-            obj.setP(obj.getP() + scale_factor * task.time)
+            #obj.setP(obj.getP() + scale_factor * task.time)
         return Task.cont
 
     def twinkle_effect(self, task):
@@ -374,6 +378,7 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
+            
 
         return Task.cont
 
