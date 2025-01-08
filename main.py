@@ -20,7 +20,7 @@ class AdditiveSynthesizerApp(ShowBase):
         super().__init__(self)
         self.accept("escape", self.quit)
         self.setup_fullscreen()
-        self.ling_factor = 1*random.choice([8])
+        self.ling_factor = 1*random.choice([1/192000])
         # Set background color to black
         self.setBackgroundColor(0, 0, 0, 0.0)
                 # Get the current working directory
@@ -83,8 +83,8 @@ class AdditiveSynthesizerApp(ShowBase):
             self.audio3darray[obj] = audio3d()  # Assign a unique audio3d instance to each object
         
         # Additive synthesis sounds (combining multiple sine waves for each object)
-        self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
-        self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
+        #self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
+        #self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
         
         #self.taskMgr.add(self.rotate_objects, "Rotate")
         #self.mb = MotionBlur()
