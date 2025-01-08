@@ -63,7 +63,7 @@ class AdditiveSynthesizerApp(ShowBase):
         self.t = 0
         self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
-        self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
+        #self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
         self.taskMgr.add(self.twinkle_effect, "TwinkleEffect")
         
         self.color_cursors = {}
@@ -85,7 +85,7 @@ class AdditiveSynthesizerApp(ShowBase):
         #self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
         self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
         
-        self.taskMgr.add(self.rotate_objects, "Rotate")
+        #self.taskMgr.add(self.rotate_objects, "Rotate")
         #self.mb = MotionBlur()
     
     def quit(self):
