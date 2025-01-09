@@ -57,13 +57,14 @@ class AdditiveSynthesizerApp(ShowBase):
         self.center_of_mass = self.compute_center_of_mass(self.objects)
 
         # Create pentatonic scale frequencies (in Hz)
-        self.pentatonic_scale = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88]
+        self.pentatonic_scale = [65.41, 73.42, 81.76, 98.21, 108.35, 130.82, 146.83, 163.52, 196.43, 216.71, 261.63, 293.66, 327.04, 392.86, 433.42, 523.25, 587.33, 654.08, 785.71, 866.84]
+
 
         # Initialize camera path and emission color updates
         self.t = 0
         self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
-        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam":
+        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam" or random_scene == "11.bam" or random_scene == "10.bamn":
             self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
         self.taskMgr.add(self.twinkle_effect, "TwinkleEffect")
         
@@ -84,7 +85,7 @@ class AdditiveSynthesizerApp(ShowBase):
         
         # Additive synthesis sounds (combining multiple sine waves for each object)
         #self.taskMgr.add(self.arpeggio_synthesizer, "ArpeggioSynthesizer")
-        #self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
+        #\self.taskMgr.add(self.arpeggio_synthesizer, "AdditiveSynthesizer")
         
         #self.taskMgr.add(self.rotate_objects, "Rotate")
         #self.mb = MotionBlur()
@@ -155,7 +156,7 @@ class AdditiveSynthesizerApp(ShowBase):
             signal = np.clip(signal, -1, 1)
             distance = self.get_distance_from_camera(obj)
             # Apply the volume and pan based on distance and position
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=idx*self.ling_factor*math.sin(idx), volume=((idx/(distance))*0.001)) # Replace "o" with your actual sound source
+            #sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=, volume=1/distance) # Replace "o" with your actual sound source
             
             if sound:
                 # Apply calculated volume and panning
@@ -171,90 +172,7 @@ class AdditiveSynthesizerApp(ShowBase):
         return distance
 
 
-    def additive_synthesizer(self, task):
-        """Implement additive synthesis by combining multiple sine waves for each object, with frequency modulation based on camera distance and color cycle speed."""
-    
-        for idx, obj in enumerate(self.objects):
-            
-            # Get the base frequency from the pentatonic scale
-            base_freq = self.pentatonic_scale[idx % len(self.pentatonic_scale)]
-            
-            # Number of harmonics to combine for additive synthesis
-            harmonic_count = 5 
-            
-            # Get the speed from the color cycle for this object (using color_cursors)
-            color_cycle_speed = self.color_cursors[obj]  # The color cursor value is in [0, 1]
-            
-            # Calculate the distance from the camera to the object
-            obj_position = obj.getPos(self.render)
-            camera_position = self.camera.getPos(self.render)
-            distance = (obj_position - camera_position).length()
-            
-            # Scale the color cycle speed and the distance to control the arpeggio speed
-            # The closer the object is to the camera, the faster the arpeggio
-            distance_factor = max(1, distance / 10.0)  # Scale distance (larger distances result in slower speed)
-            arpeggio_speed = (0.1 + color_cycle_speed * 1.9) / distance_factor  # Adjust arpeggio speed based on distance
-            
-            # Sum up multiple sine waves (fundamental and harmonics) with modulation based on color cycle speed and distance
-            signal = 0
-            for harmonic in range(1, harmonic_count + 1):
-                # Calculate the frequency for each harmonic (multiples of the base frequency)
-                frequency = base_freq * harmonic
-                # The speed of oscillation is now modulated by the color cycle speed and distance
-                modulated_frequency = frequency + arpeggio_speed * harmonic  # Modulate frequency with speed
-                
-                # Amplitude decreases for higher harmonics
-                amplitude = 1.0 / harmonic
-                
-                # Sine wave formula (using modulated frequency)
-                signal += amplitude * np.sin(2 * np.pi * modulated_frequency * task.time)
-            
-            # Normalize the signal to the range [-1, 1]
-            signal = np.clip(signal, -1, 1)
-            
-            # Map the signal to a sound volume
-            sound_volume = (signal + 1) / 2  # Convert signal range [-1, 1] to [0, 1]
-            
-            # Debugging: Print out the signal to check if it's modulating correctly
-            print(f"Object {obj.getName()} Arpeggio Speed: {arpeggio_speed}, Signal Volume: {sound_volume}")
-            
-            # Compute the direction of the sound relative to the listener (camera)
-            direction = obj_position - camera_position
-            direction.normalize()
-            
-            # Apply distance attenuation based on the object's distance to the listener
-            distance_attenuation = max(0, 1 - distance / 100)
-            
-            # Calculate stereo panning (left-right based on x-axis direction)
-            pan = direction.x  # Use x-axis for stereo pan (left-right)
-            pan_left = max(0, min(1, (1 - pan) / 2))
-            pan_right = max(0, min(1, (1 + pan) / 2))
-            
-            # Get the object's color (assuming it has a material with color)
-            if obj.hasMaterials():
-                mat = obj.getMaterials()[0]  # Get the first material
-                color = mat.getDiffuse()  # Get the diffuse color (RGBA)
-                # Calculate the average color intensity (using RGB)
-                color_intensity = (color[0] + color[1] + color[2]) / 3  # Average of RGB values
-                
-                # Use color intensity to scale the sound volume
-                scaled_sound_volume = sound_volume * color_intensity
-            else:
-                scaled_sound_volume = sound_volume  # Default to normal volume if no color is set
-            
-            # Play the sound with the computed volume and pan for each object
-            sound_name = "o"  # Adjust this to the appropriate sound
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=color_intensity*self.ling_factor)  
-            self.audio3darray[obj].setVolume(scaled_sound_volume)
-            
-            if sound:
-                # Apply 3D volume based on synthesized signal, distance, and color-based scaling
-                sound.setVolume(scaled_sound_volume * distance_attenuation)
-                
-                # Apply the calculated pan (left-right positioning)
-                sound.setPan(pan_left, pan_right)
-        
-        return Task.cont
+
 
 
 
@@ -348,9 +266,9 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=(random.choice(self.pentatonic_scale)/4)*color_cycle_speed + pitch_flux, volume=binaural_beat/(idx+1))
+            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(1/self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale), volume=binaural_beat)
             #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
-            self.audio3darray[obj].setVolume(1/color_cycle_speed)      
+            self.audio3darray[obj].setVolume(1/self.get_distance_from_camera(obj))
             
 
             
