@@ -378,7 +378,7 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
-            self.audio3darray[obj].setVolume(opacity)      
+            self.audio3darray[obj].setVolume(obj.getScale().x)      
             
 
         return Task.cont
