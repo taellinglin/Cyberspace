@@ -20,7 +20,7 @@ class AdditiveSynthesizerApp(ShowBase):
         super().__init__(self)
         self.accept("escape", self.quit)
         self.setup_fullscreen()
-        self.ling_factor = 1*random.choice([440])
+        self.ling_factor = 1*random.choice([1/48000])
         # Set background color to black
         self.setBackgroundColor(0, 0, 0, 0.0)
                 # Get the current working directory
@@ -63,7 +63,7 @@ class AdditiveSynthesizerApp(ShowBase):
         self.t = 0
         self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
-        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam" or random_scene == "10.bam":
+        if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam":
             self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
         self.taskMgr.add(self.twinkle_effect, "TwinkleEffect")
         
@@ -285,7 +285,7 @@ class AdditiveSynthesizerApp(ShowBase):
     def update_camera_path(self, task):
         """Move the camera along a path targeting the center of mass."""
         t = self.t
-        self.t += .001
+        self.t += 0.001
         x = np.sin(t) * 20 + np.sin(t * 2) * 5
         y = np.cos(t) * 30 + np.sin(t * 0.5) * 10
         z = np.sin(t * 3) * 5 + np.cos(t * 0.7) * 15
@@ -348,7 +348,7 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=4*color_cycle_speed + pitch_flux, volume=1/(idx+1))
+            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=(random.choice(self.pentatonic_scale)/4)*color_cycle_speed + pitch_flux, volume=binaural_beat/(idx+1))
             #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
             self.audio3darray[obj].setVolume(1/color_cycle_speed)      
             
@@ -365,8 +365,6 @@ class AdditiveSynthesizerApp(ShowBase):
         for obj in self.objects:
             scale_factor = 0.5 + 0.5 * np.sin(task.time * self.scale_speeds[obj] + random.random())
             obj.setScale(scale_factor)
-            
-            self.audio3darray[obj].setVolume(scale_factor)      
 
             rotation_speed = random.uniform(.1, .05)
             obj.setH(obj.getH() + rotation_speed * task.time)
@@ -380,6 +378,7 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
+            self.audio3darray[obj].setVolume(opacity)      
             
 
         return Task.cont
