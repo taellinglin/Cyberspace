@@ -365,6 +365,8 @@ class AdditiveSynthesizerApp(ShowBase):
         for obj in self.objects:
             scale_factor = 0.5 + 0.5 * np.sin(task.time * self.scale_speeds[obj] + random.random())
             obj.setScale(scale_factor)
+            
+            self.audio3darray[obj].setVolume(scale_factor)      
 
             rotation_speed = random.uniform(.1, .05)
             obj.setH(obj.getH() + rotation_speed * task.time)
@@ -378,7 +380,6 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
-            self.audio3darray[obj].setVolume(obj.getScale().x)      
             
 
         return Task.cont
