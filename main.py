@@ -20,7 +20,7 @@ class AdditiveSynthesizerApp(ShowBase):
         super().__init__(self)
         self.accept("escape", self.quit)
         self.setup_fullscreen()
-        self.ling_factor = 1*random.choice([1/192000])
+        self.ling_factor = 1*random.choice([440])
         # Set background color to black
         self.setBackgroundColor(0, 0, 0, 0.0)
                 # Get the current working directory
@@ -348,7 +348,7 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=32*color_cycle_speed + pitch_flux, volume=1/(idx+1))
+            sound = self.audio3darray[obj].playSfx(sfx=sound_name, obj=obj, loop=True, playspeed=4*color_cycle_speed + pitch_flux, volume=1/(idx+1))
             #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
             self.audio3darray[obj].setVolume(1/color_cycle_speed)      
             
