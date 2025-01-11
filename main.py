@@ -14,9 +14,10 @@ from motionBlur import MotionBlur
 import os
 from panda3d.core import loadPrcFileData
 from screeninfo import get_monitors
+import argparse
 
 class AdditiveSynthesizerApp(ShowBase):
-    def __init__(self, scene_path="01.bam", motion_blur_factor=0.9):
+    def __init__(self, scene_path=None, motion_blur_factor=0.9):
         super().__init__(self)
         self.accept("escape", self.quit)
         self.setup_fullscreen()
@@ -24,28 +25,10 @@ class AdditiveSynthesizerApp(ShowBase):
         # Set background color to black
         self.setBackgroundColor(0, 0, 0, 0.0)
                 # Get the current working directory
-        cwd = os.getcwd()
-        
-        # Define valid scene file extensions
-        valid_extensions = (".bam", ".egg", ".gltf", ".glb")
-        
-        # Collect all valid scene files in the CWD
-        scene_files = [
-            file
-            for file in os.listdir(cwd)
-            if file.endswith(valid_extensions)
-        ]
-        
-        if not scene_files:
-            print("No valid scene files found in the current working directory.")
-            return
-        
-        # Choose a random scene file
-        random_scene = random.choice(scene_files)
-        print(f"Loading random scene: {random_scene}")
+        random_scene = scene_path
         
         # Load the chosen scene by its file name
-        self.scene = self.loader.loadModel(random_scene)
+        self.scene = self.loader.loadModel(scene_path)
         if not self.scene:
             raise FileNotFoundError(f"Scene file '{scene_path}' could not be loaded.")
         self.scene.reparentTo(self.render)
@@ -311,7 +294,51 @@ class AdditiveSynthesizerApp(ShowBase):
                 total_weight += 1
         return total_position / total_weight if total_weight > 0 else LVector3f(0, 0, 0)
 
-app = AdditiveSynthesizerApp("02.bam", motion_blur_factor=0.9)
-app.setup_fullscreen()
-#app.mb = MotionBlur()
-app.run()
+# Main script
+def main():
+    parser = argparse.ArgumentParser(description="Run the AdditiveSynthesizerApp with a specified level.")
+    parser.add_argument(
+        "--level", 
+        type=str, 
+        help="The level file to load (e.g., '02.bam'). If not specified, a random level will be selected."
+    )
+    parser.add_argument(
+        "--motion_blur_factor", 
+        type=float, 
+        default=0.9, 
+        help="The motion blur factor to apply (default: 0.9)."
+    )
+
+    args = parser.parse_args()
+    cwd = os.getcwd()
+    level = None
+    
+    # Define valid scene file extensions
+    valid_extensions = (".bam", ".egg", ".gltf", ".glb")
+    
+    # Collect all valid scene files in the CWD
+    scene_files = [
+        file
+        for file in os.listdir(cwd)
+        if file.endswith(valid_extensions)
+    ]
+    
+    if args.level is None:
+        # Load a random level if --level is not provided
+        level = random.choice(scene_files)
+        if not scene_files:
+            print("No valid scene files found in the current working directory.")
+            
+            print(f"No level specified. Loading random level: {level}")
+            return
+            
+    else:
+        level = args.level
+
+    app = AdditiveSynthesizerApp(scene_path=level, motion_blur_factor=args.motion_blur_factor)
+    app.setup_fullscreen()
+    # app.mb = MotionBlur()
+    app.run()
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,16 @@
+build
+dist
+.eggs
+.pyc
+__pycache__
+.avi
+.mp4
+.blend
+.blend1
+.wav
+!audio/*.wav
+.mp4
+.venv
+blend2bams
+screencaptures/*.wav
+.idea
