@@ -375,7 +375,7 @@ class AdditiveSynthesizerApp(ShowBase):
             print(f"Color Cycle Speed: {color_cycle_speed}")
             distance = self.get_distance_from_camera(obj)
             if(distance > 0):
-                sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale)*(1/color_cycle_speed)/48000, volume=binaural_beat)
+                sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale)*(1/color_cycle_speed)/96000, volume=binaural_beat)
                 #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
                 self.audio3darray[obj].setVolume(1/self.get_distance_from_camera(obj))
                 
