@@ -373,47 +373,17 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            # Get the distance from the camera to the object
-            distance_from_cam = self.get_distance_from_camera(obj)
-            
-            if distance_from_cam > 0:
-                # Calculate volume and pitch
-                volume = 1 / distance_from_cam
-                # Define the near and far distance values
-                min_distance = 1.0  # Minimum distance (closest point)
-                max_distance = 1000.0  # Maximum distance (furthest point)
-
-                # Normalize the distance from the camera
-                normalized_distance = (distance_from_cam - min_distance) / (max_distance - min_distance)
-
-                # Clamp the normalized distance between 0 and 1
-                normalized_distance = max(0.0, min(normalized_distance, 1.0))
-
-                # Now you can use the normalized distance to calculate the pitch
-                pitch = normalized_distance * random.choice(self.pentatonic_scale)
+            distance = self.get_distance_from_camera(obj)
+            if(distance > 0):
+                sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale)*(1/color_cycle_speed)/32, volume=binaural_beat)
+                #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
+                self.audio3darray[obj].setVolume(1/self.get_distance_from_camera(obj))
                 
-                # Limit volume and pitch to reasonable ranges
-                volume = max(0.0, min(volume, 1.0))  # Clamp between 0.0 and 1.0
-                pitch = max(0.5, min(pitch, 2.0))   # Clamp pitch between 0.5 and 2.0
-                
-                # Adjust the audio source properties
-                self.audio3darray[obj].setVolume(volume)
-                
-                # Play sound if not already playing
-                if not self.audio3darray[obj].status(obj) == "PLAYING":
-                    self.audio3darray[obj].playSfx(
-                        sfx="o",
-                        obj=obj,
-                        loop=True,
-                        playspeed=pitch,
-                        volume=volume
-                    )
-            else:
-                # Stop the sound if the object is too close or invalid distance
-                self.audio3darray[obj].stopLoopingAudio()
-            
 
-            
+                
+                if sound:
+                    # Apply the binaural beat signal's volume (this can be mapped to the signal's strength)
+                    sound.setVolume(np.clip(abs(binaural_beat), 0, 1))  # Normalize the binaural beat volume (0 to 1)
             
         return Task.cont
 
@@ -435,7 +405,7 @@ class AdditiveSynthesizerApp(ShowBase):
             color = obj.getColor()
             color.setW(opacity)
             obj.setColor(color)
-            self.audio3darray[obj].setVolume(opacity)      
+            #self.audio3darray[obj].setVolume(opacity)      
             
 
         return Task.cont

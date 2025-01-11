@@ -111,3 +111,15 @@ class audio3d:
             else:
                 print(f"Sound is not playing for object: {str(obj)}.")
                 return "Stopped"
+            
+    def getPos(self, obj):
+        """ Get the position of the object to which the sound is attached. """
+        if obj is None:
+            print("No object provided.")
+            return None
+
+        # Get the position of the object (assuming it's a Panda3D node)
+        position = obj.getPos()
+        
+        print(f"Object position: {position}")
+        return position
