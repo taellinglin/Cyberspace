@@ -28,7 +28,7 @@ class AdditiveSynthesizerApp(ShowBase):
 
         # Initialize variables
         self.camera_speed = 10
-        self.rotation_speed = 120
+        self.rotation_speed = 32
         self.smoothing_factor = 0.2
         self.camera_velocity = Vec3(0, 0, 0)
         self.camera_rotation_velocity = Vec3(0, 0, 0)
@@ -375,7 +375,7 @@ class AdditiveSynthesizerApp(ShowBase):
             print(f"Color Cycle Speed: {color_cycle_speed}")
             distance = self.get_distance_from_camera(obj)
             if(distance > 0):
-                sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale)*(1/color_cycle_speed)/32, volume=binaural_beat)
+                sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale)*(1/color_cycle_speed)/48000, volume=binaural_beat)
                 #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
                 self.audio3darray[obj].setVolume(1/self.get_distance_from_camera(obj))
                 
