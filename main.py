@@ -15,11 +15,44 @@ import os
 from panda3d.core import loadPrcFileData
 from screeninfo import get_monitors
 import argparse
+from panda3d.core import Vec3
+from panda3d.core import KeyboardButton, InputDevice
+import sys
+import time
 
 class AdditiveSynthesizerApp(ShowBase):
     def __init__(self, scene_path=None, motion_blur_factor=0.9):
         super().__init__(self)
-        self.accept("escape", self.quit)
+        self.accept("escape", sys.exit)
+        self.disableMouse()
+
+        # Initialize variables
+        self.camera_speed = 10
+        self.rotation_speed = 120
+        self.smoothing_factor = 0.2
+        self.camera_velocity = Vec3(0, 0, 0)
+        self.camera_rotation_velocity = Vec3(0, 0, 0)
+
+        # Time tracking for gamepad activity
+        self.last_gamepad_activity = time.time()
+        self.idle_threshold = 5.0  # Seconds before considering the gamepad idle
+
+        # Initialize camera path variables
+        self.t = 0
+        self.center_of_mass = Vec3(0, 0, 0)
+
+        # Add task for updating the camera
+        self.taskMgr.add(self.update_camera, "UpdateCamera")
+
+        # Check for gamepad support
+        if not self.devices.getDevices(InputDevice.DeviceClass.gamepad):
+            print("No gamepad detected. Defaulting to camera path.")
+            self.use_camera_path = True
+        else:
+            self.gamepad = self.devices.getDevices(InputDevice.DeviceClass.gamepad)[0]
+            self.attachInputDevice(self.gamepad)
+            self.use_camera_path = False
+
         self.setup_fullscreen()
         self.ling_factor = 1*random.choice([1/48000])
         # Set background color to black
@@ -40,12 +73,13 @@ class AdditiveSynthesizerApp(ShowBase):
         self.center_of_mass = self.compute_center_of_mass(self.objects)
 
         # Create pentatonic scale frequencies (in Hz)
-        self.pentatonic_scale = [65.41, 73.42, 81.76, 98.21, 108.35, 130.82, 146.83, 163.52, 196.43, 216.71, 261.63, 293.66, 327.04, 392.86, 433.42, 523.25, 587.33, 654.08, 785.71, 866.84]
+        self.pentatonic_scale = [65.41, 73.42, 81.76, 98.21, 108.35, 130.82, 146.83, 163.52, 196.43, 216.71, 261.63, 293.66, 327.04, 392.86, 433.42, 523.25, 587.33, 654.08, 785.71, 866.84, 1047.50, 1174.67, 1305.25, 1471.42, 1741.68, 2083.00, 2349.34, 2610.50, 2942.84, 3483.36, 4177.99, 4698.68, 5221.00, 5945.67, 8375.37, 9397.36, 10442.00, 11891.34, 13312.00, 14751.36, 17614.73, 18892.36, 20884.00, 23677.64, 25187.04, 29524.00, 33766.72, 37591.90, 41746.56, 47167.36, 51095.52, 58661.72, 62576.88]
+
 
 
         # Initialize camera path and emission color updates
         self.t = 0
-        self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
+        #self.taskMgr.add(self.update_camera_path, "UpdateCameraPath")
         self.taskMgr.add(self.update_emissive_colors, "UpdateEmissiveColors")
         if random_scene == "00.bam" or random_scene == "02.bam" or random_scene == "04.bam" or random_scene == "11.bam" or random_scene == "10.bamn":
             self.taskMgr.add(self.oscillate_scale_and_rotation, "OscillateScaleAndRotation")
@@ -94,6 +128,106 @@ class AdditiveSynthesizerApp(ShowBase):
         self.win.requestProperties(props)
 
         print(f"Setting fullscreen resolution to {width}x{height}")
+
+    def get_gamepad_axes(self):
+        """Get gamepad axes for movement, rotation, and roll."""
+        # Left stick for movement
+        move_x = self.gamepad.findAxis(InputDevice.Axis.left_x).value
+        move_y = -self.gamepad.findAxis(InputDevice.Axis.left_y).value
+
+        # Right stick for rotation
+        look_x = self.gamepad.findAxis(InputDevice.Axis.right_x).value
+        look_y = -self.gamepad.findAxis(InputDevice.Axis.right_y).value
+
+        # Triggers for roll
+        left_trigger = self.gamepad.findAxis(InputDevice.Axis.left_trigger).value
+        right_trigger = self.gamepad.findAxis(InputDevice.Axis.right_trigger).value
+
+        return move_x, move_y, look_x, look_y, left_trigger, right_trigger
+
+
+    def is_gamepad_active(self, move_x, move_y, look_x, look_y):
+        """Check if the gamepad is active (any axis is not at rest)."""
+        return any(abs(value) > 0.1 for value in (move_x, move_y, look_x, look_y))
+
+    def update_camera(self, task):
+        """Update the camera based on gamepad input or follow a path."""
+        # Get gamepad axes
+        move_x, move_y, look_x, look_y, left_trigger, right_trigger = self.get_gamepad_axes()
+
+        # Check for gamepad activity
+        if self.is_gamepad_active(move_x, move_y, look_x, look_y):
+            self.last_gamepad_activity = time.time()  # Update last activity time
+            self.update_camera_gamepad(move_x, move_y, look_x, look_y, left_trigger, right_trigger)
+        else:
+            # If idle for longer than the threshold, switch to the camera path
+            if time.time() - self.last_gamepad_activity > self.idle_threshold:
+                self.update_camera_path()
+
+        return Task.cont
+
+
+    def update_camera_gamepad(self, move_x, move_y, look_x, look_y, left_trigger, right_trigger):
+        """Update camera movement, rotation, pitch, roll based on gamepad input, similar to Starfox."""
+        
+        # Get the camera's current orientation (forward, right, and up vectors)
+        forward = self.camera.getQuat().getForward()  # Camera's forward direction
+        right = self.camera.getQuat().getRight()      # Camera's right direction
+        up = self.camera.getQuat().getUp()            # Camera's up direction
+
+        # **Left Analog Stick (Thrust/Move Forward/Backward and Left/Right)**
+        forward_velocity = forward * -move_y * self.camera_speed  # Move forward/backward relative to camera
+        right_velocity = right * move_x * self.camera_speed      # Move left/right relative to camera
+        
+        # Combine the thrust velocities for final movement
+        target_velocity = forward_velocity + right_velocity
+        self.camera_velocity += (target_velocity - self.camera_velocity) * self.smoothing_factor
+
+        # Apply the velocity to move the camera
+        self.camera.setPos(self.camera.getPos() + self.camera_velocity * globalClock.getDt())
+
+        # **Right Analog Stick (Rotation/Look Around)**
+
+        # Pitch (up/down movement on the right analog stick - X-axis rotation)
+        pitch_input = -look_y * self.rotation_speed  # Negative because up tilts down
+        self.camera.setP(self.camera.getP() + pitch_input * globalClock.getDt())  # Update camera pitch
+
+        # Roll (left/right movement on the right analog stick - Z-axis rotation)
+        roll_input = look_x * self.rotation_speed  # Positive for right tilt, negative for left tilt
+        self.camera.setR(self.camera.getR() + roll_input * globalClock.getDt())  # Update camera roll
+
+        # **Triggers (Inverted Spin Control) - Yaw Rotation relative to camera**
+        spin_speed = self.rotation_speed  # Speed multiplier for spinning
+
+        # Invert the triggers and make the rotation relative to the camera
+        # The right trigger (RT) should rotate the camera left (negative rotation)
+        # The left trigger (LT) should rotate the camera right (positive rotation)
+        spin_input = (left_trigger - right_trigger) * spin_speed  # Inverted calculation for triggers
+
+        # Adjust the camera's yaw (horizontal spin) based on the trigger input and make it relative to the camera's current facing direction
+        self.camera.setH(self.camera.getH() + spin_input * globalClock.getDt())
+
+
+
+
+
+
+
+    def update_camera_path(self):
+        """Move the camera along a path targeting the center of mass."""
+        t = self.t
+        self.t += 0.001
+        x = np.sin(t) * 20 + np.sin(t * 2) * 5
+        y = np.cos(t) * 30 + np.sin(t * 0.5) * 10
+        z = np.sin(t * 3) * 5 + np.cos(t * 0.7) * 15
+
+        self.camera.setPos(
+            x + self.center_of_mass[0],
+            y + self.center_of_mass[1],
+            z + self.center_of_mass[2] + 20,
+        )
+        self.camera.lookAt(self.center_of_mass)
+
     def arpeggio_synthesizer(self, task):
         """Create arpeggios for each object that move up and down a scale, with position-based pitch adjustments."""
     
@@ -183,17 +317,7 @@ class AdditiveSynthesizerApp(ShowBase):
         
         return Task.cont
 
-    def update_camera_path(self, task):
-        """Move the camera along a path targeting the center of mass."""
-        t = self.t
-        self.t += 0.001
-        x = np.sin(t) * 20 + np.sin(t * 2) * 5
-        y = np.cos(t) * 30 + np.sin(t * 0.5) * 10
-        z = np.sin(t * 3) * 5 + np.cos(t * 0.7) * 15
 
-        self.camera.setPos(x + self.center_of_mass[0], y + self.center_of_mass[1], z + self.center_of_mass[2] + 20)
-        self.camera.lookAt(self.center_of_mass)
-        return Task.cont
 
     def update_emissive_colors(self, task):
         """Rapidly cycle colors of each object in the scene, modulate binaural beat frequency with color cycling speed."""
@@ -249,15 +373,47 @@ class AdditiveSynthesizerApp(ShowBase):
             pitch_flux = (sin(task.time/16) + 1)/2
             pitch_flux2 = (cos(task.time/8)+1)/2
             print(f"Color Cycle Speed: {color_cycle_speed}")
-            sound = self.audio3darray[obj].playSfx(sfx="o", obj=obj, loop=True, playspeed=(1/self.get_distance_from_camera(obj))*random.choice(self.pentatonic_scale), volume=binaural_beat)
-            #self.audio3darray[obj].setLoopSpeed(2/color_cycle_speed*self.ling_factor)     
-            self.audio3darray[obj].setVolume(1/self.get_distance_from_camera(obj))
+            # Get the distance from the camera to the object
+            distance_from_cam = self.get_distance_from_camera(obj)
+            
+            if distance_from_cam > 0:
+                # Calculate volume and pitch
+                volume = 1 / distance_from_cam
+                # Define the near and far distance values
+                min_distance = 1.0  # Minimum distance (closest point)
+                max_distance = 1000.0  # Maximum distance (furthest point)
+
+                # Normalize the distance from the camera
+                normalized_distance = (distance_from_cam - min_distance) / (max_distance - min_distance)
+
+                # Clamp the normalized distance between 0 and 1
+                normalized_distance = max(0.0, min(normalized_distance, 1.0))
+
+                # Now you can use the normalized distance to calculate the pitch
+                pitch = normalized_distance * random.choice(self.pentatonic_scale)
+                
+                # Limit volume and pitch to reasonable ranges
+                volume = max(0.0, min(volume, 1.0))  # Clamp between 0.0 and 1.0
+                pitch = max(0.5, min(pitch, 2.0))   # Clamp pitch between 0.5 and 2.0
+                
+                # Adjust the audio source properties
+                self.audio3darray[obj].setVolume(volume)
+                
+                # Play sound if not already playing
+                if not self.audio3darray[obj].status(obj) == "PLAYING":
+                    self.audio3darray[obj].playSfx(
+                        sfx="o",
+                        obj=obj,
+                        loop=True,
+                        playspeed=pitch,
+                        volume=volume
+                    )
+            else:
+                # Stop the sound if the object is too close or invalid distance
+                self.audio3darray[obj].stopLoopingAudio()
             
 
             
-            if sound:
-                # Apply the binaural beat signal's volume (this can be mapped to the signal's strength)
-                sound.setVolume(np.clip(abs(binaural_beat), 0, 1))  # Normalize the binaural beat volume (0 to 1)
             
         return Task.cont
 

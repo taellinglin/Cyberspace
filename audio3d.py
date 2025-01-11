@@ -1,6 +1,6 @@
 from direct.showbase import Audio3DManager
 from random import choice, shuffle
-
+from panda3d.core import AudioSound
 
 class audio3d:
     def __init__(self):
@@ -84,6 +84,7 @@ class audio3d:
         for sound in self.playing_loops:
             sound.setPlayRate(playspeed)
             print(f"Adjusted looping sound speed to: {playspeed}")
+
     def setVolume(self, volume=1.0):
         """ Adjust the volume of all currently playing looping sounds. """
         if not self.playing_loops:
@@ -96,3 +97,17 @@ class audio3d:
         for sound in self.playing_loops:
             sound.setVolume(volume)
             print(f"Adjusted looping sound volume to: {volume}")
+
+    def status(self, obj):
+        """ Get the status of the sound attached to an object. """
+        if obj not in self.sfx3d:
+            print("No sound attached to this object.")
+            return None
+
+        for sound in self.sfx3d.values():
+            if sound.status() == AudioSound.PLAYING:
+                print(f"Sound is playing for object: {str(obj)}.")
+                return "Playing"
+            else:
+                print(f"Sound is not playing for object: {str(obj)}.")
+                return "Stopped"
